@@ -145,6 +145,12 @@ function barkodOkundu(barkod) {
 
 function barkodModalKapat() {
   barkodModalAcik.value = false
+  okunanBarkod.value = null
+}
+
+function yeniUrunModalKapat() {
+  yeniUrunModalAcik.value = false
+  okunanBarkod.value = null
 }
 
 function barkodIleEkle() {
@@ -198,7 +204,7 @@ function yeniUrunKaydet() {
     <!-- Yeni Ürün Ekle Modalı (ürün yoksa) -->
     <div v-if="yeniUrunModalAcik" class="modal-gecmis">
       <div class="modal-icerik">
-        <button class="modal-kapat" @click="() => { yeniUrunModalAcik.value = false; okunanBarkod.value = null }">×</button>
+        <button class="modal-kapat" @click="yeniUrunModalKapat">×</button>
         <div style="max-width:400px; margin:0 auto;">
           <h3 style="color:#1976d2; text-align:center; margin-bottom:18px;">Yeni Ürün Ekle</h3>
           <form @submit.prevent="yeniUrunKaydet">
@@ -498,6 +504,14 @@ function yeniUrunKaydet() {
   .btn {
     font-size: 1.1rem;
     padding: 14px 0;
+  }
+  .modal-icerik {
+    min-width: 0;
+    width: 98vw;
+    max-width: 98vw;
+    min-height: 0;
+    padding: 16px 6px 12px 6px;
+    border-radius: 10px;
   }
 }
 .menu-btn {

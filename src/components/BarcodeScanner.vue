@@ -1,54 +1,41 @@
 <template>
   <div>
-    <div class="scanner-info">Kameranın netliğine dikkat edin. Barkodu kameraya çok yakın tutmayın.</div>
-    <div id="reader" style="width: 320px; margin: 0 auto;"></div>
+    <video ref="videoRef" style="width: 100%; max-width: 340px; margin: 0 auto; border-radius: 8px;" autoplay muted></video>
     <button @click="stopScanner" v-if="scanning" class="scanner-stop">Durdur</button>
   </div>
 </template>
-<script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
-let Html5Qrcode
-const emit = defineEmits(['barkod'])
-const scanning = ref(false)
-let html5QrCode
-const scannerActive = ref(false)
 
-async function startScanner() {
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { BrowserMultiFormatReader } from '@zxing/browser'
+
+const emit = defineEmits(['barkod'])
+const videoRef = ref(null)
+const scanning = ref(false)
+let codeReader
+let controls = null
+
+function startScanner() {
   scanning.value = true
-  if (!Html5Qrcode) {
-    Html5Qrcode = (await import('html5-qrcode')).Html5Qrcode
-  }
-  html5QrCode = new Html5Qrcode('reader')
-  scannerActive.value = true
-  html5QrCode.start(
-    { facingMode: 'environment' },
-    { fps: 5, qrbox: 320 },
-    (decodedText) => {
-      console.log('[BARKOD OKUNDU]', decodedText)
-      emit('barkod', decodedText)
-      stopScanner()
-    },
-    (errorMessage) => {
-      // Her frame'de hata olabilir, çok fazla log olmasın diye sadece ilk 1-2 hatayı gösterelim
-      if (errorMessage && errorMessage.length < 100) {
-        console.debug('[BARKOD HATA]', errorMessage)
+  codeReader = new BrowserMultiFormatReader()
+  controls = codeReader.decodeFromVideoDevice(
+    null,
+    videoRef.value,
+    (result, err) => {
+      if (result) {
+        console.log('[BARKOD OKUNDU]', result.getText())
+        emit('barkod', result.getText())
+        stopScanner()
       }
     }
-  ).catch(e => {
-    console.error('[BARKOD BAŞLATMA HATASI]', e)
-    scannerActive.value = false
-  })
+  )
 }
 
 function stopScanner() {
   scanning.value = false
-  if (html5QrCode && scannerActive.value) {
-    html5QrCode.stop()
-      .then(() => html5QrCode.clear())
-      .catch(e => {
-        console.debug('[BARKOD STOP HATASI]', e)
-      })
-    scannerActive.value = false
+  if (controls && typeof controls.stop === 'function') {
+    controls.stop()
+    controls = null
   }
 }
 
@@ -59,13 +46,8 @@ onBeforeUnmount(() => {
   stopScanner()
 })
 </script>
+
 <style scoped>
-.scanner-info {
-  text-align: center;
-  color: #1976d2;
-  font-size: 1.05rem;
-  margin-bottom: 8px;
-}
 .scanner-stop {
   display: block;
   margin: 18px auto 0 auto;
