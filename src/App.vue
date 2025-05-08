@@ -24,6 +24,17 @@ const satisGecmisi = ref([])
 const sidebarAcik = ref(false)
 const gecmisAcik = ref(false)
 const barkodScannerAcik = ref(false)
+const okunanBarkod = ref(null)
+const barkodModalAcik = ref(false)
+const yeniUrunModalAcik = ref(false)
+const yeniUrunForm = ref({
+  barkod: '',
+  ad: '',
+  fiyat: '',
+  stok: '',
+  kategori: '',
+  aciklama: ''
+})
 
 function urunEkle(barkodOrAd) {
   const giris = (barkodOrAd ?? barkodInput.value).trim()
@@ -113,8 +124,50 @@ function satisYap(tip) {
 }
 
 function barkodOkundu(barkod) {
-  urunEkle(barkod)
+  okunanBarkod.value = barkod
   barkodScannerAcik.value = false
+  // Ürün var mı kontrol et
+  const urun = urunlerListesi.find(u => u.barkod === barkod)
+  if (urun) {
+    barkodModalAcik.value = true
+  } else {
+    yeniUrunForm.value = {
+      barkod,
+      ad: '',
+      fiyat: '',
+      stok: '',
+      kategori: '',
+      aciklama: ''
+    }
+    yeniUrunModalAcik.value = true
+  }
+}
+
+function barkodModalKapat() {
+  barkodModalAcik.value = false
+}
+
+function barkodIleEkle() {
+  urunEkle(okunanBarkod.value)
+  barkodModalAcik.value = false
+  okunanBarkod.value = null
+}
+
+function yeniUrunKaydet() {
+  // Validasyon (gerekirse daha detaylı yapılabilir)
+  if (!yeniUrunForm.value.ad || !yeniUrunForm.value.fiyat) return
+  const yeniUrun = {
+    barkod: yeniUrunForm.value.barkod,
+    ad: yeniUrunForm.value.ad,
+    fiyat: Number(yeniUrunForm.value.fiyat),
+    stok: yeniUrunForm.value.stok,
+    kategori: yeniUrunForm.value.kategori,
+    aciklama: yeniUrunForm.value.aciklama
+  }
+  urunlerListesi.push(yeniUrun)
+  urunEkle(yeniUrun.barkod)
+  yeniUrunModalAcik.value = false
+  okunanBarkod.value = null
 }
 </script>
 
@@ -129,6 +182,41 @@ function barkodOkundu(barkod) {
       <div class="modal-icerik">
         <button class="modal-kapat" @click="barkodScannerAcik = false">×</button>
         <BarcodeScanner @barkod="barkodOkundu" />
+      </div>
+    </div>
+    <!-- Okunan Barkod Modalı (ürün varsa) -->
+    <div v-if="barkodModalAcik" class="modal-gecmis">
+      <div class="modal-icerik">
+        <button class="modal-kapat" @click="barkodModalKapat">×</button>
+        <div style="text-align:center; margin: 24px 0 18px 0;">
+          <div style="font-size:1.2rem; color:#1976d2; margin-bottom:12px;">Okunan Barkod</div>
+          <div style="font-size:2rem; font-weight:bold; margin-bottom:18px;">{{ okunanBarkod }}</div>
+          <button @click="barkodIleEkle" class="barkod-ekle-btn">Ürünü Sepete Ekle</button>
+        </div>
+      </div>
+    </div>
+    <!-- Yeni Ürün Ekle Modalı (ürün yoksa) -->
+    <div v-if="yeniUrunModalAcik" class="modal-gecmis">
+      <div class="modal-icerik">
+        <button class="modal-kapat" @click="() => { yeniUrunModalAcik.value = false; okunanBarkod.value = null }">×</button>
+        <div style="max-width:400px; margin:0 auto;">
+          <h3 style="color:#1976d2; text-align:center; margin-bottom:18px;">Yeni Ürün Ekle</h3>
+          <form @submit.prevent="yeniUrunKaydet">
+            <label class="urun-label">Barkod</label>
+            <input class="urun-input" v-model="yeniUrunForm.barkod" readonly />
+            <label class="urun-label">Ürün Adı</label>
+            <input class="urun-input" v-model="yeniUrunForm.ad" required />
+            <label class="urun-label">Fiyat</label>
+            <input class="urun-input" v-model="yeniUrunForm.fiyat" type="number" min="0" step="0.01" required />
+            <label class="urun-label">Stok</label>
+            <input class="urun-input" v-model="yeniUrunForm.stok" type="number" min="0" />
+            <label class="urun-label">Kategori</label>
+            <input class="urun-input" v-model="yeniUrunForm.kategori" />
+            <label class="urun-label">Açıklama</label>
+            <textarea class="urun-input" v-model="yeniUrunForm.aciklama" rows="2"></textarea>
+            <button type="submit" class="barkod-ekle-btn" style="margin-top:18px; width:100%;">Kaydet ve Sepete Ekle</button>
+          </form>
+        </div>
       </div>
     </div>
     <!-- Sol üstte hamburger menü butonu -->
@@ -490,5 +578,35 @@ function barkodOkundu(barkod) {
 }
 .barkod-icon {
   font-size: 1.3em;
+}
+.barkod-ekle-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.barkod-ekle-btn:hover {
+  background: #bbdefb;
+}
+.urun-label {
+  display:block;
+  margin-top:10px;
+  margin-bottom:2px;
+  font-weight:500;
+  color:#1976d2;
+}
+.urun-input {
+  width:100%;
+  padding:10px;
+  font-size:1.1rem;
+  border-radius:6px;
+  border:1px solid #b0bec5;
+  margin-bottom:6px;
+  background:#f8fafc;
 }
 </style>
